@@ -30,9 +30,11 @@ import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
+import android.widget.Toast;
 
 import lk.ac.mrt.cse.dbs.simpleexpensemanager.R;
 import lk.ac.mrt.cse.dbs.simpleexpensemanager.control.ExpenseManager;
+import lk.ac.mrt.cse.dbs.simpleexpensemanager.control.PersistancyStorageManager;
 import lk.ac.mrt.cse.dbs.simpleexpensemanager.data.exception.InvalidAccountException;
 import lk.ac.mrt.cse.dbs.simpleexpensemanager.data.model.ExpenseType;
 
@@ -42,6 +44,7 @@ import static lk.ac.mrt.cse.dbs.simpleexpensemanager.Constants.EXPENSE_MANAGER;
  */
 public class ManageExpensesFragment extends Fragment implements View.OnClickListener {
     private Button submitButton;
+    private Button refreshAccountButton;
     private EditText amount;
     private Spinner accountSelector;
     private RadioGroup expenseTypeGroup;
@@ -64,7 +67,8 @@ public class ManageExpensesFragment extends Fragment implements View.OnClickList
         View rootView = inflater.inflate(R.layout.fragment_manage_expenses, container, false);
         submitButton = (Button) rootView.findViewById(R.id.submit_amount);
         submitButton.setOnClickListener(this);
-
+        refreshAccountButton = (Button) rootView.findViewById(R.id.refreshAC);
+        refreshAccountButton.setOnClickListener(this);
         amount = (EditText) rootView.findViewById(R.id.amount);
         accountSelector = (Spinner) rootView.findViewById(R.id.account_selector);
         currentExpenseManager = (ExpenseManager) getArguments().get(EXPENSE_MANAGER);
@@ -102,23 +106,44 @@ public class ManageExpensesFragment extends Fragment implements View.OnClickList
                 }
 
                 if (currentExpenseManager != null) {
-                    try {
-                        currentExpenseManager.updateAccountBalance(selectedAccount, day, month, year,
-                                ExpenseType.valueOf(type.toUpperCase()), amountStr);
-                    } catch (InvalidAccountException e) {
-                        new AlertDialog.Builder(this.getActivity())
-                                .setTitle(this.getString(R.string.msg_account_update_unable) + selectedAccount)
-                                .setMessage(e.getMessage())
-                                .setNeutralButton(this.getString(R.string.msg_ok),
-                                        new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialog, int which) {
-                                        dialog.cancel();
-                                    }
-                                }).setIcon(android.R.drawable.ic_dialog_alert).show();
+                    if(selectedAccount != null) {
+                        try {
+                            currentExpenseManager.updateAccountBalance(selectedAccount, day, month, year,
+                                    ExpenseType.valueOf(type.toUpperCase()), amountStr);
+                            //Save transaction in DB
+                            ((PersistancyStorageManager) currentExpenseManager).updateLog(selectedAccount, day, month, year,
+                                    ExpenseType.valueOf(type.toUpperCase()), amountStr);
+                        } catch (InvalidAccountException e) {
+                            new AlertDialog.Builder(this.getActivity())
+                                    .setTitle(this.getString(R.string.msg_account_update_unable) + selectedAccount)
+                                    .setMessage(e.getMessage())
+                                    .setNeutralButton(this.getString(R.string.msg_ok),
+                                            new DialogInterface.OnClickListener() {
+                                                @Override
+                                                public void onClick(DialogInterface dialog, int which) {
+                                                    dialog.cancel();
+                                                }
+                                            }).setIcon(android.R.drawable.ic_dialog_alert).show();
+                        }
+                    }
+                    else
+                    {
+                        Toast toast = Toast.makeText(this.getContext(), "Please select an Account",Toast.LENGTH_SHORT);
+                        toast.show();
                     }
                 }
                 amount.getText().clear();
+                break;
+            case R.id.refreshAC:
+                ArrayAdapter<String> adapter =
+                        null;
+                if (currentExpenseManager != null) {
+                    adapter = new ArrayAdapter<>(this.getActivity(), R.layout.support_simple_spinner_dropdown_item,
+                            currentExpenseManager.getAccountNumbersList());
+                }
+                accountSelector.setAdapter(adapter);
+
+
                 break;
         }
     }

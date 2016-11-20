@@ -26,6 +26,7 @@ import android.widget.EditText;
 
 import lk.ac.mrt.cse.dbs.simpleexpensemanager.R;
 import lk.ac.mrt.cse.dbs.simpleexpensemanager.control.ExpenseManager;
+import lk.ac.mrt.cse.dbs.simpleexpensemanager.control.PersistancyStorageManager;
 
 import static lk.ac.mrt.cse.dbs.simpleexpensemanager.Constants.EXPENSE_MANAGER;
 /**
@@ -60,7 +61,7 @@ public class AddAccountFragment extends Fragment implements View.OnClickListener
         addAccount = (Button) rootView.findViewById(R.id.add_account);
         addAccount.setOnClickListener(this);
 
-        currentExpenseManager = (ExpenseManager) getArguments().get(EXPENSE_MANAGER);
+        currentExpenseManager = (PersistancyStorageManager) getArguments().get(EXPENSE_MANAGER);
         return rootView;
     }
 
@@ -97,6 +98,10 @@ public class AddAccountFragment extends Fragment implements View.OnClickListener
                 if (currentExpenseManager != null) {
                     currentExpenseManager.addAccount(accountNumStr, bankNameStr, accountHolderStr,
                             Double.parseDouble(initialBalanceStr));
+                    //save account in DB
+                            ((PersistancyStorageManager) currentExpenseManager).updateNewAccount(accountNumStr, bankNameStr, accountHolderStr,
+                                    Double.parseDouble(initialBalanceStr));
+
                 }
                 cleanUp();
                 break;
